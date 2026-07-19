@@ -188,6 +188,8 @@ build_deb() {
       TARGET_CODESIGN_ALLOCATE="$xcode_tools/codesign_allocate" \
       TARGET_XCODEBUILD="$xcode_tools/xcodebuild" \
       TARGET_CODESIGN=/opt/homebrew/bin/ldid \
+      ADDITIONAL_CFLAGS="-Wno-error=deprecated-declarations -Wno-error=incompatible-pointer-types" \
+      ADDITIONAL_OBJCFLAGS="-Wno-error=deprecated-declarations -Wno-error=incompatible-pointer-types" \
       "$@"
     package="$(find packages -maxdepth 1 -type f -name '*.deb' -print | sort | tail -1)"
     [[ -n "$package" ]] || { echo "No package generated in $directory" >&2; exit 1; }
