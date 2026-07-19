@@ -47,6 +47,9 @@ if command -v brew >/dev/null 2>&1; then
   if [[ -n "$gnu_make_prefix" ]]; then
     export PATH="$gnu_make_prefix/libexec/gnubin:$PATH"
   fi
+  if ! command -v ldid >/dev/null 2>&1; then
+    brew install ldid
+  fi
 fi
 make_bin="$(command -v make || true)"
 for command_name in git make curl unzip xcrun; do
@@ -169,6 +172,10 @@ build_deb() {
       TARGET_CC=/usr/bin/clang \
       TARGET_CXX=/usr/bin/clang++ \
       TARGET_LD=/usr/bin/clang++ \
+      TARGET_DSYMUTIL=/usr/bin/dsymutil \
+      TARGET_STRIP=/usr/bin/strip \
+      TARGET_LIPO=/usr/bin/lipo \
+      TARGET_CODESIGN_ALLOCATE=/usr/bin/codesign_allocate \
       "$@"
     package="$(find packages -maxdepth 1 -type f -name '*.deb' -print | sort | tail -1)"
     [[ -n "$package" ]] || { echo "No package generated in $directory" >&2; exit 1; }
