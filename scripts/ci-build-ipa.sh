@@ -48,6 +48,7 @@ if command -v brew >/dev/null 2>&1; then
     export PATH="$gnu_make_prefix/libexec/gnubin:$PATH"
   fi
 fi
+make_bin="$(command -v make || true)"
 for command_name in git make curl unzip xcrun; do
   command -v "$command_name" >/dev/null 2>&1 || {
     echo "Required command is missing: $command_name" >&2
@@ -160,10 +161,11 @@ build_deb() {
   echo "==> Building $(basename "$directory")"
   (
     cd "$directory"
-    make clean package \
+    "$make_bin" clean package \
       DEBUG=0 \
       FINALPACKAGE=1 \
       THEOS_PACKAGE_SCHEME=rootless \
+      MAKE="$make_bin" \
       TARGET_CC=/usr/bin/clang \
       TARGET_CXX=/usr/bin/clang++ \
       TARGET_LD=/usr/bin/clang++ \
