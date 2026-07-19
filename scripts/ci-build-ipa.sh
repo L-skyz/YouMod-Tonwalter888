@@ -62,6 +62,11 @@ done
 tools_root="$task_tmp_root/tools"
 theos="$tools_root/theos"
 mkdir -p "$tools_root"
+xcode_tools="$tools_root/xcode-tools"
+mkdir -p "$xcode_tools"
+for tool_name in clang clang++ dsymutil strip lipo libtool swiftc codesign_allocate xcodebuild; do
+  ln -sfn "$(xcrun -f "$tool_name")" "$xcode_tools/$tool_name"
+done
 if [[ ! -d "$theos/.git" ]]; then
   git clone --quiet --depth=1 --recurse-submodules https://github.com/theos/theos.git "$theos"
 fi
@@ -113,9 +118,9 @@ if [[ -z "$tbd_bin" ]]; then
 fi
 
 export THEOS="$theos"
-export TARGET_CC=/usr/bin/clang
-export TARGET_CXX=/usr/bin/clang++
-export TARGET_LD=/usr/bin/clang++
+export TARGET_CC="$xcode_tools/clang"
+export TARGET_CXX="$xcode_tools/clang++"
+export TARGET_LD="$xcode_tools/clang++"
 export ADDITIONAL_CFLAGS="-Wno-error=incompatible-pointer-types"
 export ADDITIONAL_OBJCFLAGS="-Wno-error=incompatible-pointer-types"
 
@@ -170,16 +175,16 @@ build_deb() {
       THEOS_PACKAGE_SCHEME=rootless \
       TARGET=iphone:clang:18.6:14.0 \
       MAKE="$make_bin" \
-      TARGET_CC=/usr/bin/clang \
-      TARGET_CXX=/usr/bin/clang++ \
-      TARGET_LD=/usr/bin/clang++ \
-      TARGET_DSYMUTIL=/usr/bin/dsymutil \
-      TARGET_STRIP=/usr/bin/strip \
-      TARGET_LIPO=/usr/bin/lipo \
-      TARGET_LIBTOOL=/usr/bin/libtool \
-      TARGET_SWIFTC=/usr/bin/swiftc \
-      TARGET_CODESIGN_ALLOCATE=/usr/bin/codesign_allocate \
-      TARGET_XCODEBUILD=/usr/bin/xcodebuild \
+      TARGET_CC="$xcode_tools/clang" \
+      TARGET_CXX="$xcode_tools/clang++" \
+      TARGET_LD="$xcode_tools/clang++" \
+      TARGET_DSYMUTIL="$xcode_tools/dsymutil" \
+      TARGET_STRIP="$xcode_tools/strip" \
+      TARGET_LIPO="$xcode_tools/lipo" \
+      TARGET_LIBTOOL="$xcode_tools/libtool" \
+      TARGET_SWIFTC="$xcode_tools/swiftc" \
+      TARGET_CODESIGN_ALLOCATE="$xcode_tools/codesign_allocate" \
+      TARGET_XCODEBUILD="$xcode_tools/xcodebuild" \
       TARGET_CODESIGN=/opt/homebrew/bin/ldid \
       "$@"
     package="$(find packages -maxdepth 1 -type f -name '*.deb' -print | sort | tail -1)"
