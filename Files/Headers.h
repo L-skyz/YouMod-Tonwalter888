@@ -35,8 +35,20 @@
 #import <YouTubeHeader/YTPlayerView.h>
 #import <YouTubeHeader/YTLabel.h>
 #import <YouTubeHeader/YTCommonColorPalette.h>
+#import <AVFoundation/AVFoundation.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import <dlfcn.h>
+
+@interface MLAudioSession : NSObject
+- (unsigned int)activateForPlayback;
+- (unsigned int)activateForPlaybackWithMode:(unsigned int)mode;
+- (void)doneWithPlaybackForTaskID:(unsigned int)taskID;
+- (BOOL)setAudioSessionCategory:(NSString *)category
+                           mode:(NSString *)mode
+             routeSharingPolicy:(NSUInteger)routeSharingPolicy
+                        options:(AVAudioSessionCategoryOptions)options
+                          error:(NSError **)error;
+@end
 
 // For Settings.x
 #import <PSHeader/Misc.h>
