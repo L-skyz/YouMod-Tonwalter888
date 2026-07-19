@@ -1,24 +1,135 @@
-name: Build full YouMod IPA
+name: Build and Export IPA
 
 on:
-  manual: true
+  push:
+    branches: [main]
+  manual: {}
 
 env:
   CI_IPA_UPLOAD: required
+  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
 jobs:
   build:
-    name: Build YouMod + AudioMix + all extensions
     runs-on: macos
-    timeout-minutes: 180
+    timeout-minutes: 30
     steps:
-      - name: Download uploaded decrypted IPA
+      - name: Build signed IPA
         run: |
-          test -n "$INPUT_IPA_TOKEN"
+          bash <<'BASH'
+          set -euo pipefail
+
+          export RUNNER_TEMP="${RUNNER_TEMP:-$(mktemp -d)}"
+          export GITHUB_ENV="${GITHUB_ENV:-$RUNNER_TEMP/github_env}"
+          touch "$GITHUB_ENV"
+
+          SIGNING_SCRIPT="$HOME/.cid-runner/prepare-ci-signing.sh"
+          if [ ! -r "$SIGNING_SCRIPT" ]; then
+            echo "Signing script not readable: $SIGNING_SCRIPT" >&2
+            exit 1
+          fi
+          echo "Preparing signing assets from $SIGNING_SCRIPT"
+          source "$SIGNING_SCRIPT"
+
+          JOB_RUNNER_TEMP="$RUNNER_TEMP"
+          SIGNING_TEMP="$HOME/.cid-runner/signing/YouMod"
+          mkdir -p "$SIGNING_TEMP"
+          RUNNER_TEMP="$SIGNING_TEMP" prepare_ci_signing
+          RUNNER_TEMP="$JOB_RUNNER_TEMP"
+
+          SIGNING_KEYCHAIN_PATH="$(awk -F= '$1=="SIGNING_KEYCHAIN_PATH"{print substr($0, index($0, "=") + 1)}' "$GITHUB_ENV" | tail -1)"
+          PROVISION_PROFILE_PATH="$(awk -F= '$1=="PROVISION_PROFILE_PATH"{print substr($0, index($0, "=") + 1)}' "$GITHUB_ENV" | tail -1)"
+          : "${SIGNING_KEYCHAIN_PATH:?SIGNING_KEYCHAIN_PATH was not written by prepare_ci_signing}"
+          : "${PROVISION_PROFILE_PATH:?PROVISION_PROFILE_PATH was not written by prepare_ci_signing}"
+
+          : "${INPUT_IPA_TOKEN:?Run this workflow manually and upload a decrypted IPA}"
           curl -fsSL \
             -H "Authorization: Bearer $CI_RUNNER_TOKEN" \
             "$CI_API_URL/runner/workflow-inputs/$INPUT_IPA_TOKEN" \
             -o youtube.ipa
 
-      - name: Build and inject all tweaks
-        run: ./scripts/ci-build-ipa.sh youtube.ipa
+          ./scripts/ci-build-ipa.sh youtube.ipa
+          UNSIGNED_IPA="$(find "$PWD" -maxdepth 1 -type f -name 'YouMod_*_Full_AudioMix.ipa' -print | sort | tail -1)"
+          : "${UNSIGNED_IPA:?YouMod build did not produce an IPA}"
+
+          EXPORT_PATH="$RUNNER_TEMP/ipa"
+          IPA_ROOT="$RUNNER_TEMP/ipa-root"
+          rm -rf "$IPA_ROOT" "$EXPORT_PATH"
+          mkdir -p "$IPA_ROOT" "$EXPORT_PATH"
+          ditto -x -k "$UNSIGNED_IPA" "$IPA_ROOT"
+
+          APP_PATH="$(find "$IPA_ROOT/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)"
+          : "${APP_PATH:?Payload app was not found in the injected IPA}"
+          rm -rf "$APP_PATH/_CodeSignature"
+
+          PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
+          openssl smime -inform der -verify -noverify \
+            -in "$PROVISION_PROFILE_PATH" -out "$PROFILE_PLIST" 2>/dev/null
+
+          sign_bundle() {
+            local bundle="$1"
+            local bundle_id entitlements
+            bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$bundle/Info.plist")"
+            entitlements="$RUNNER_TEMP/entitlements-$(printf '%s' "$bundle_id" | tr -c 'A-Za-z0-9._-' '_').plist"
+            python3 - "$PROFILE_PLIST" "$entitlements" "$bundle_id" <<'PY'
+          import plistlib
+          import sys
+
+          profile_path, output_path, bundle_id = sys.argv[1:]
+          with open(profile_path, "rb") as source:
+              profile = plistlib.load(source)
+          entitlements = dict(profile.get("Entitlements", {}))
+          team = str(profile.get("TeamIdentifier", [""])[0])
+          if not team:
+              raise SystemExit("TeamIdentifier is missing from the provisioning profile")
+          entitlements["application-identifier"] = f"{team}.{bundle_id}"
+          entitlements["com.apple.developer.team-identifier"] = team
+          if "keychain-access-groups" in entitlements:
+              entitlements["keychain-access-groups"] = [f"{team}.*"]
+          with open(output_path, "wb") as destination:
+              plistlib.dump(entitlements, destination)
+          PY
+            cp "$PROVISION_PROFILE_PATH" "$bundle/embedded.mobileprovision"
+            rm -rf "$bundle/_CodeSignature"
+            codesign --force \
+              --sign "Apple Development" \
+              --keychain "$SIGNING_KEYCHAIN_PATH" \
+              --entitlements "$entitlements" \
+              --generate-entitlement-der \
+              --timestamp=none \
+              "$bundle"
+          }
+
+          while IFS= read -r binary; do
+            codesign --force \
+              --sign "Apple Development" \
+              --keychain "$SIGNING_KEYCHAIN_PATH" \
+              --timestamp=none \
+              "$binary"
+          done < <(find "$APP_PATH" -type f -name '*.dylib' -print | sort)
+
+          while IFS= read -r framework; do
+            rm -rf "$framework/_CodeSignature"
+            codesign --force \
+              --sign "Apple Development" \
+              --keychain "$SIGNING_KEYCHAIN_PATH" \
+              --timestamp=none \
+              "$framework"
+          done < <(find "$APP_PATH" -type d -name '*.framework' -print | awk '{ print length, $0 }' | sort -rn | cut -d' ' -f2-)
+
+          while IFS= read -r extension; do
+            sign_bundle "$extension"
+          done < <(find "$APP_PATH" -type d -name '*.appex' -print | awk '{ print length, $0 }' | sort -rn | cut -d' ' -f2-)
+
+          sign_bundle "$APP_PATH"
+          test -f "$APP_PATH/embedded.mobileprovision"
+          codesign --verify --deep --strict "$APP_PATH"
+
+          IPA_NAME="$(basename "${UNSIGNED_IPA%.ipa}")_Signed.ipa"
+          (cd "$IPA_ROOT" && ditto -c -k --sequesterRsrc --keepParent Payload "$EXPORT_PATH/$IPA_NAME")
+          test -s "$EXPORT_PATH/$IPA_NAME"
+          unzip -tq "$EXPORT_PATH/$IPA_NAME" >/dev/null
+
+          rm -f "$UNSIGNED_IPA" youtube.ipa
+          echo "IPA_PATH=$EXPORT_PATH/$IPA_NAME"
+          BASH

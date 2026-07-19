@@ -4,8 +4,8 @@
 
 The personal CI workflow at `.ci/workflows/build-ipa.yml` accepts a decrypted
 YouTube IPA from the workflow page, builds YouMod with the AudioMix hook and all
-extensions used by the upstream full build, injects them, and publishes the
-resulting IPA as the run artifact.
+extensions used by the upstream full build, injects them, signs the final app
+with the runner's `prepare-ci-signing.sh` assets, and publishes the signed IPA.
 A tweak that's try to recreate features like in YTLite as much as possible. Contributions are welcome! ^^
 
 Thanks for 200 stars and forks! This might be the best project I've done.
