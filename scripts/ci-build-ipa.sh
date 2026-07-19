@@ -179,6 +179,7 @@ build_deb() {
       TARGET_SWIFTC=/usr/bin/swiftc \
       TARGET_CODESIGN_ALLOCATE=/usr/bin/codesign_allocate \
       TARGET_XCODEBUILD=/usr/bin/xcodebuild \
+      TARGET_CODESIGN=/opt/homebrew/bin/ldid \
       "$@"
     package="$(find packages -maxdepth 1 -type f -name '*.deb' -print | sort | tail -1)"
     [[ -n "$package" ]] || { echo "No package generated in $directory" >&2; exit 1; }
