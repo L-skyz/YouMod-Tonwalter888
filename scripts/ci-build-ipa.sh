@@ -42,15 +42,19 @@ fi
 youtube_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_path/Info.plist")"
 youmod_version="$(awk '/^Version:/{print $2; exit}' "$project_root/control")"
 
-if command -v brew >/dev/null 2>&1; then
-  homebrew_prefix="$(brew --prefix)"
+brew_bin="$(command -v brew || true)"
+if [[ -z "$brew_bin" && -x /opt/homebrew/bin/brew ]]; then
+  brew_bin=/opt/homebrew/bin/brew
+fi
+if [[ -n "$brew_bin" ]]; then
+  homebrew_prefix="$("$brew_bin" --prefix)"
   export PATH="$homebrew_prefix/bin:$PATH"
-  gnu_make_prefix="$(brew --prefix make 2>/dev/null || true)"
+  gnu_make_prefix="$("$brew_bin" --prefix make 2>/dev/null || true)"
   if [[ -n "$gnu_make_prefix" ]]; then
     export PATH="$gnu_make_prefix/libexec/gnubin:$PATH"
   fi
   if ! command -v ldid >/dev/null 2>&1; then
-    brew install ldid
+    "$brew_bin" install ldid
   fi
 fi
 make_bin="$(command -v make || true)"
@@ -69,8 +73,8 @@ mkdir -p "$xcode_tools"
 for tool_name in clang clang++ dsymutil strip lipo libtool swiftc codesign_allocate xcodebuild; do
   ln -sfn "$(xcrun -f "$tool_name")" "$xcode_tools/$tool_name"
 done
-if command -v brew >/dev/null 2>&1; then
-  ln -sfn "$(brew --prefix xz)/bin/lzma" "$xcode_tools/lzma"
+if [[ -n "$brew_bin" ]]; then
+  ln -sfn "$("$brew_bin" --prefix xz)/bin/lzma" "$xcode_tools/lzma"
 fi
 export PATH="$xcode_tools:$PATH"
 echo "Using lzma: $(command -v lzma)"
