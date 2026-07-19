@@ -73,20 +73,17 @@ mkdir -p "$xcode_tools"
 for tool_name in clang clang++ dsymutil strip lipo libtool swiftc codesign_allocate xcodebuild; do
   ln -sfn "$(xcrun -f "$tool_name")" "$xcode_tools/$tool_name"
 done
-if [[ -n "$brew_bin" ]]; then
-  ln -sfn "$("$brew_bin" --prefix xz)/bin/lzma" "$xcode_tools/lzma"
+lzma_bin=/opt/homebrew/bin/lzma
+if [[ ! -x "$lzma_bin" ]]; then
+  echo "Required packaging tool is missing: $lzma_bin" >&2
+  exit 1
 fi
-export PATH="$xcode_tools:$PATH"
-echo "Using lzma: $(command -v lzma)"
+ln -sfn "$lzma_bin" "$xcode_tools/lzma"
+tool_path="$xcode_tools:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+export PATH="$tool_path"
+"$xcode_tools/lzma" --version | head -1
 if [[ ! -d "$theos/.git" ]]; then
   git clone --quiet --depth=1 --recurse-submodules https://github.com/theos/theos.git "$theos"
-fi
-if ! find "$theos/sdks" -maxdepth 1 -type d -name 'iPhoneOS18.6.sdk' -print -quit | grep -q .; then
-  sdk_checkout="$build_root/iOS-SDKs"
-  git clone --quiet --depth=1 -n --filter=tree:0 https://github.com/Tonwalter888/iOS-SDKs.git "$sdk_checkout"
-  git -C "$sdk_checkout" sparse-checkout set --no-cone iPhoneOS18.6.sdk
-  git -C "$sdk_checkout" checkout --quiet
-  mv "$sdk_checkout"/*.sdk "$theos/sdks/"
 fi
 git -C "$theos/vendor/logos" fetch --quiet origin a62370066a97e36d59b200a9fa10c5091f5e8972
 git -C "$theos/vendor/logos" checkout --quiet a62370066a97e36d59b200a9fa10c5091f5e8972
