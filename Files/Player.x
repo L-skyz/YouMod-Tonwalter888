@@ -4,6 +4,21 @@ extern void YouModDownloadSetCurrentPlayer(YTPlayerViewController *player);
 
 float playbackRate = 1.0;
 
+%hook MLAudioSession
+
+- (BOOL)setAudioSessionCategory:(NSString *)category
+                           mode:(NSString *)mode
+             routeSharingPolicy:(NSUInteger)routeSharingPolicy
+                        options:(AVAudioSessionCategoryOptions)options
+                          error:(NSError **)error {
+    if ([category isEqualToString:AVAudioSessionCategoryPlayback]) {
+        options |= AVAudioSessionCategoryOptionMixWithOthers;
+    }
+    return %orig(category, mode, routeSharingPolicy, options, error);
+}
+
+%end
+
 /*
 static void YouModAddEndTime(YTPlayerViewController *self, YTSingleVideoController *video, YTSingleVideoTime *time) {
     if (!IS_ENABLED(ShowExtraTimeRemaining)) return;

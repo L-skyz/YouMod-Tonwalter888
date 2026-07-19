@@ -1,0 +1,24 @@
+name: Build full YouMod IPA
+
+on:
+  manual: true
+
+env:
+  CI_IPA_UPLOAD: required
+
+jobs:
+  build:
+    name: Build YouMod + AudioMix + all extensions
+    runs-on: macos
+    timeout-minutes: 180
+    steps:
+      - name: Download uploaded decrypted IPA
+        run: |
+          test -n "$INPUT_IPA_TOKEN"
+          curl -fsSL \
+            -H "Authorization: Bearer $CI_RUNNER_TOKEN" \
+            "$CI_API_URL/runner/workflow-inputs/$INPUT_IPA_TOKEN" \
+            -o youtube.ipa
+
+      - name: Build and inject all tweaks
+        run: ./scripts/ci-build-ipa.sh youtube.ipa
