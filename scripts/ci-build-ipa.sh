@@ -43,6 +43,8 @@ youtube_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_pat
 youmod_version="$(awk '/^Version:/{print $2; exit}' "$project_root/control")"
 
 if command -v brew >/dev/null 2>&1; then
+  homebrew_prefix="$(brew --prefix)"
+  export PATH="$homebrew_prefix/bin:$PATH"
   gnu_make_prefix="$(brew --prefix make 2>/dev/null || true)"
   if [[ -n "$gnu_make_prefix" ]]; then
     export PATH="$gnu_make_prefix/libexec/gnubin:$PATH"
