@@ -168,7 +168,7 @@ build_deb() {
       DEBUG=0 \
       FINALPACKAGE=1 \
       THEOS_PACKAGE_SCHEME=rootless \
-      SDKVERSION=18.6 \
+      TARGET=iphone:clang:18.6:14.0 \
       MAKE="$make_bin" \
       TARGET_CC=/usr/bin/clang \
       TARGET_CXX=/usr/bin/clang++ \
@@ -201,7 +201,7 @@ build_deb "$sources/DontEatMyContent" demc.deb
 build_deb "$sources/YouMute" youmute.deb
 build_deb "$sources/YouLoop" youloop.deb
 build_deb "$sources/YouSlider" youslider.deb
-build_deb "$sources/YTHoldForSpeed" ytholdspeed.deb TARGET=iphone:clang:latest:15.0 ARCHS=arm64
+build_deb "$sources/YTHoldForSpeed" ytholdspeed.deb TARGET=iphone:clang:18.6:15.0 ARCHS=arm64
 build_deb "$sources/YouChooseQuality" youchoose.deb
 build_deb "$sources/YouShare" youshare.deb
 build_deb "$sources/YTweaks" ytweaks.deb
