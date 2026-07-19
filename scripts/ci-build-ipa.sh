@@ -168,7 +168,7 @@ build_deb() {
       DEBUG=0 \
       FINALPACKAGE=1 \
       THEOS_PACKAGE_SCHEME=rootless \
-      THEOS_PLATFORM_SDK_ROOT=/nonexistent \
+      SDKVERSION=18.6 \
       MAKE="$make_bin" \
       TARGET_CC=/usr/bin/clang \
       TARGET_CXX=/usr/bin/clang++ \
