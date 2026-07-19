@@ -69,6 +69,11 @@ mkdir -p "$xcode_tools"
 for tool_name in clang clang++ dsymutil strip lipo libtool swiftc codesign_allocate xcodebuild; do
   ln -sfn "$(xcrun -f "$tool_name")" "$xcode_tools/$tool_name"
 done
+if command -v brew >/dev/null 2>&1; then
+  ln -sfn "$(brew --prefix xz)/bin/lzma" "$xcode_tools/lzma"
+fi
+export PATH="$xcode_tools:$PATH"
+echo "Using lzma: $(command -v lzma)"
 if [[ ! -d "$theos/.git" ]]; then
   git clone --quiet --depth=1 --recurse-submodules https://github.com/theos/theos.git "$theos"
 fi
