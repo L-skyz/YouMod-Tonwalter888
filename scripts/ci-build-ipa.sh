@@ -175,7 +175,10 @@ build_deb() {
       TARGET_DSYMUTIL=/usr/bin/dsymutil \
       TARGET_STRIP=/usr/bin/strip \
       TARGET_LIPO=/usr/bin/lipo \
+      TARGET_LIBTOOL=/usr/bin/libtool \
+      TARGET_SWIFTC=/usr/bin/swiftc \
       TARGET_CODESIGN_ALLOCATE=/usr/bin/codesign_allocate \
+      TARGET_XCODEBUILD=/usr/bin/xcodebuild \
       "$@"
     package="$(find packages -maxdepth 1 -type f -name '*.deb' -print | sort | tail -1)"
     [[ -n "$package" ]] || { echo "No package generated in $directory" >&2; exit 1; }
