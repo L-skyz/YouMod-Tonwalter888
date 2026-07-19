@@ -160,7 +160,14 @@ build_deb() {
   echo "==> Building $(basename "$directory")"
   (
     cd "$directory"
-    make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless "$@"
+    make clean package \
+      DEBUG=0 \
+      FINALPACKAGE=1 \
+      THEOS_PACKAGE_SCHEME=rootless \
+      TARGET_CC=/usr/bin/clang \
+      TARGET_CXX=/usr/bin/clang++ \
+      TARGET_LD=/usr/bin/clang++ \
+      "$@"
     package="$(find packages -maxdepth 1 -type f -name '*.deb' -print | sort | tail -1)"
     [[ -n "$package" ]] || { echo "No package generated in $directory" >&2; exit 1; }
     cp "$package" "$debs/$output"
