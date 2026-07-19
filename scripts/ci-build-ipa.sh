@@ -143,13 +143,6 @@ clone_repo() {
   git clone --quiet --depth=1 "$url" "$sources/$name"
 }
 
-open_youtube="$build_root/OpenYouTubeSafariExtension"
-git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/BillyCurtis/OpenYouTubeSafariExtension.git "$open_youtube"
-git -C "$open_youtube" sparse-checkout set --no-cone OpenYouTubeSafariExtension.appex
-git -C "$open_youtube" checkout --quiet
-appex="$(find "$open_youtube" -maxdepth 2 -type d -name '*.appex' -print -quit)"
-[[ -n "$appex" ]] || { echo "OpenYouTubeSafariExtension.appex was not found" >&2; exit 1; }
-
 clone_repo YouPiP https://github.com/PoomSmart/YouPiP.git
 clone_repo YTUHD https://github.com/Tonwalter888/YTUHD.git
 clone_repo Return-YouTube-Dislikes https://github.com/PoomSmart/Return-YouTube-Dislikes.git
@@ -230,7 +223,7 @@ build_deb "$sources/VolumeBoostYT" volboostyt.deb ARCHS=arm64
 
 output="$project_root/YouMod_${youtube_version}_v${youmod_version}_Full_AudioMix.ipa"
 rm -f "$output"
-inject_items=("$appex")
+inject_items=()
 while IFS= read -r package; do
   inject_items+=("$package")
 done < <(find "$debs" -maxdepth 1 -type f -name '*.deb' -print | sort)
